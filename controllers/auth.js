@@ -1,7 +1,18 @@
 const { ConnectionPoolMonitoringEvent } = require("mongodb");
 const User = require("../models/user")
 const bcrypt = require("bcryptjs")
+const nodemailer = require("nodemailer")
+const crypto = require("crypto")
 
+const transporter = nodemailer.createTransport({
+  host:"sandbox.smtp.mailtrap.io",
+  port:2525,
+  secure:false,
+  auth:{
+    user:"08a53ba263a9e8",
+    pass:"1d9095cf9ccbe0"
+  }
+})
 
 exports.getLogin = (req, res) => {
   let message = req.flash("error");
@@ -104,7 +115,19 @@ exports.postSignup = async (req, res) => {
     await newUser.save();
     await req.session.save((err) => {
       if (!err) {
-        return res.redirect("/login");
+        res.redirect("/login");
+        const mailOptions = {
+          from: "arnavjain0902@gmail.com",
+          to: email,
+          subject: "Sign-in confirmation",
+          text: `Thank You for signing in.`,
+        };
+        
+        return transporter.sendMail(mailOptions, (err, info) => {
+          if (!err) {
+            console.log("Sent Email to ", email);
+          }
+        });
       }
     });
   } catch (err) {
@@ -112,3 +135,43 @@ exports.postSignup = async (req, res) => {
   }
 };
 
+exports.getReset = (req, res, next) => {
+  let error = req.flash("error");
+  if (error.length > 0) {
+    error = error[0];
+  } else {
+    error = null;
+  }
+  res.render("auth/reset", {
+    path: "/reset",
+    pageTitle: "Reset Password",
+    error:error
+  });
+};
+
+exports.postReset = async (req, res, next)=>{
+  crypto.randomBytes(32,async (err, buffer)=>{
+    if(err){
+      console.log(err);
+      return res.redirect("/reset")
+    }
+    const token = buffer.toString("hex")
+    const user = await User.findOne({email:req.body.email})
+    if(!user){
+      req.flash("error","No account with that email found.");
+      return res.redirect("/reset")
+    }
+    user.resetToken = token
+    user.resetTokenExpiration = Date.now()+3600000
+    await user.save()
+    res.redirect("/")
+    transporter.sendMail({
+      to: req.body.email,
+      from: "arnavjain0902@gmail.com",
+      subject: "Password Reset",
+      html: `<p>You requested a password reset</p>
+        <p>Click this <a href="http://localhost:3000/reset/${token}">Link</a> to reset </p>
+      `,
+    });
+  })
+}
