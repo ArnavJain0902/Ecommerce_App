@@ -1,4 +1,4 @@
-const { ConnectionPoolMonitoringEvent } = require("mongodb");
+const { ConnectionPoolMonitoringEvent, ObjectId } = require("mongodb");
 const User = require("../models/user")
 const bcrypt = require("bcryptjs")
 const nodemailer = require("nodemailer")
@@ -163,7 +163,10 @@ exports.postReset = async (req, res, next)=>{
     }
     user.resetToken = token
     user.resetTokenExpiration = Date.now()+3600000
-    await user.save()
+    await User.updateOne({email:req.body.email},{
+      resetToken: token,
+      resetTokenExpiration: Date.now()+3600000
+    })
     res.redirect("/")
     transporter.sendMail({
       to: req.body.email,
@@ -175,3 +178,47 @@ exports.postReset = async (req, res, next)=>{
     });
   })
 }
+
+exports.getNewPassword = async (req, res, next) => {
+  try {
+    const token = req.params.token;
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiration: { $gt: new Date() },
+    });
+
+    let error = req.flash("error");
+    if (error.length > 0) {
+      error = error[0];
+    } else {
+      error = null;
+    }
+    res.render("auth/new-password", {
+      path: "/new-password",
+      pageTitle: "Reset Password",
+      error: error,
+      userId: user._id.toString(),
+    });
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+exports.postNewPassword = async (req, res, next) => {
+  try {
+    const newPassword = req.body.password;
+    const hashedPassword = await bcrypt.hash(newPassword,12);
+    const userId = new ObjectId(req.body.userId);
+    await User.updateOne(
+      { _id:userId },
+      {
+        password: hashedPassword,
+        resetToken:undefined,
+        resetTokenExpiration:undefined
+      }
+    );
+    res.redirect("/login");
+  } catch (err) {
+    console.log(err);
+  }
+};
