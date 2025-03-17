@@ -67,8 +67,11 @@ exports.postLogin = async (req, res) => {
 
 exports.postLogout = async (req, res) => {
   try {
-    await req.session.destroy()
-    res.redirect("/");
+    await req.session.destroy((err) => {
+      if (!err) {
+        return res.redirect("/");
+      }
+    });
   } catch (err) {
     console.log(err);
   }
@@ -95,14 +98,14 @@ exports.postSignup = async (req, res) => {
     const password = req.body.password;
     const confirmedPassword = req.body.confirmpassword;
 
+    if(password !== confirmedPassword){
+      req.flash("error","Passwords do not match.")
+      return res.redirect("/signup")
+    }
     const user = await User.findOne({ email: email });
     if (user) {
       req.flash("error", "E-mail exists already.");
-      await req.session.save((err) => {
-        if (!err) {
-          return res.redirect("/signup");
-        }
-      });
+      return res.redirect("/signup")
     }
     const hashedPassword = await bcrypt.hash(password, 12);
 

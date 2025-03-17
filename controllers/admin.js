@@ -25,7 +25,13 @@ exports.postAddProduct = async (req, res) => {
       userId: req.session.user._id,
     });
     await product.save();
-    res.redirect("/");
+    req.session.save((err)=>{
+      if(!err){
+        return res.redirect("/");
+      } else{
+        console.log("error while saving session");
+      }
+    })
   } catch (err) {
     console.log(err);
   }
@@ -60,7 +66,11 @@ exports.postEditProduct = async (req, res) => {
       description: updatedDesc,
       imageUrl: updatedImageUrl,
     } = req.body;
-
+    const product = await Product.findById(productId);
+    if(product.userId !== req.session.user._id){
+      return res.redirect("/")
+    }
+    
     await Product.findByIdAndUpdate(
       { _id: productId },
       {
@@ -70,7 +80,13 @@ exports.postEditProduct = async (req, res) => {
         imageUrl: updatedImageUrl,
       }
     );
-    res.redirect("/admin/products");
+    req.session.save((err)=>{
+      if(!err){
+        return res.redirect("/admin/products");
+      } else{
+        console.log("error while saving session");
+      }
+    })
   } catch (err) {
     console.log(err);
   }
@@ -78,7 +94,7 @@ exports.postEditProduct = async (req, res) => {
 
 exports.getProducts = async (req, res, next) => {
   try {
-    const products = await Product.find();
+    const products = await Product.find({userId:req.session.user._id});
     res.render("admin/products", {
       prods: products,
       pageTitle: "Admin Products",
@@ -92,6 +108,10 @@ exports.getProducts = async (req, res, next) => {
 
 exports.postDeleteProduct = async (req, res, next) => {
   const productId = req.body.productId;
+  const product = await Product.findById(productId);
+  if(product.userId.toString() !== req.session.user._id.toString()){
+    return res.redirect("/")
+  }
   const newCartItems = [...req.session.user.cart.items];
   const productIndex = req.session.user.cart.items.findIndex((p) => {
     return p.productId.toString() === productId.toString();
@@ -106,7 +126,13 @@ exports.postDeleteProduct = async (req, res, next) => {
         cart: newCart,
       }
     );
-    res.redirect("/admin/products");
+    req.session.save((err)=>{
+      if(!err){
+        return res.redirect("/admin/products");
+      } else{
+        console.log("error while saving session");
+      }
+    })
   } catch (err) {
     console.log(err);
   }
