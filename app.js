@@ -1,6 +1,6 @@
 const path = require("path");
-const mongoose = require("mongoose")
 const express = require("express");
+const mongoose = require("mongoose")
 const session = require("express-session")
 const MongoDBStore = require("connect-mongodb-session")(session);
 const MONGODB_URI = "mongodb+srv://Arnav:superarnav@cluster0.s2mlu.mongodb.net/shop?retryWrites=true&w=majority&appName=Cluster0";
@@ -27,9 +27,9 @@ app.set("views", "views");
 
 
 app.use(express.urlencoded({ extended: false }));
-
 /* eslint-disable-next-line no-undef */
 app.use(express.static(path.join(__dirname, "public")));
+
 app.use(
   session({
     secret: "my secret",
@@ -51,6 +51,8 @@ app.use((req,res,next)=>{
   next()
 })
 app.use(flash())
+
+
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);

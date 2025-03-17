@@ -1,8 +1,10 @@
 const { ConnectionPoolMonitoringEvent, ObjectId } = require("mongodb");
-const User = require("../models/user")
-const bcrypt = require("bcryptjs")
-const nodemailer = require("nodemailer")
-const crypto = require("crypto")
+const User = require("../models/user");
+const bcrypt = require("bcryptjs");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+const { validationResult } = require("express-validator");
+const { error } = require("console");
 
 const transporter = nodemailer.createTransport({
   host:"sandbox.smtp.mailtrap.io",
@@ -31,8 +33,17 @@ exports.getLogin = (req, res) => {
 
 exports.postLogin = async (req, res) => {
   try {
+    const errors = validationResult(req);
     const email = req.body.email;
     const password = req.body.password;
+    if (!errors.isEmpty()) {
+      return res.status(422).render("auth/login", {
+        path: "/login",
+        pageTitle: "Login",
+        isAuthenticated: req.session.isLoggedIn,
+        error: errors.array()[0].msg,
+      });
+    }
     const user = await User.findOne({ email: email });
     if (user) {
       const passCheck = await bcrypt.compare(password, user.password);
@@ -97,10 +108,15 @@ exports.postSignup = async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
     const confirmedPassword = req.body.confirmpassword;
+    const errors = validationResult(req);
 
-    if(password !== confirmedPassword){
-      req.flash("error","Passwords do not match.")
-      return res.redirect("/signup")
+    if(!errors.isEmpty()){
+      return res.status(422).render("auth/signup", {
+        path: "/signup",
+        pageTitle: "Signup",
+        isAuthenticated: req.session.isLoggedIn,
+        error: errors.array()[0].msg,
+      });
     }
     const user = await User.findOne({ email: email });
     if (user) {
@@ -116,7 +132,7 @@ exports.postSignup = async (req, res) => {
     });
 
     await newUser.save();
-    await req.session.save((err) => {
+    await req.session.save(async (err) => {
       if (!err) {
         res.redirect("/login");
         const mailOptions = {
@@ -124,13 +140,9 @@ exports.postSignup = async (req, res) => {
           to: email,
           subject: "Sign-in confirmation",
           text: `Thank You for signing in.`,
-        };
-        
-        return transporter.sendMail(mailOptions, (err, info) => {
-          if (!err) {
-            console.log("Sent Email to ", email);
-          }
-        });
+        };       
+        await transporter.sendMail(mailOptions)
+        console.log("Sent Email to ", email);
       }
     });
   } catch (err) {
