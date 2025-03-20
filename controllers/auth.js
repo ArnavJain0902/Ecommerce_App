@@ -1,10 +1,9 @@
-const { ConnectionPoolMonitoringEvent, ObjectId } = require("mongodb");
+const { ObjectId } = require("mongodb");
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const { validationResult } = require("express-validator");
-const { error } = require("console");
 
 const transporter = nodemailer.createTransport({
   host:"sandbox.smtp.mailtrap.io",
@@ -28,6 +27,8 @@ exports.getLogin = (req, res) => {
     pageTitle: "Login",
     isAuthenticated: req.session.isLoggedIn,
     error: message,
+    oldInput:{email:null, password:null},
+    validationErrors:[]
   });
 };
 
@@ -42,6 +43,8 @@ exports.postLogin = async (req, res) => {
         pageTitle: "Login",
         isAuthenticated: req.session.isLoggedIn,
         error: errors.array()[0].msg,
+        oldInput:{email:email, password:password},
+        validationErrors:errors.array()
       });
     }
     const user = await User.findOne({ email: email });
@@ -56,7 +59,6 @@ exports.postLogin = async (req, res) => {
           }
         });
       } else {
-        req.flash("error", "Invalid email or Password.");
         await req.session.save((err) => {
           if (!err) {
             return res.redirect("/login");
@@ -64,7 +66,6 @@ exports.postLogin = async (req, res) => {
         });
       }
     } else {
-      req.flash("error", "Invalid email or Password.");
       await req.session.save((err) => {
         if (!err) {
           return res.redirect("/login");
@@ -100,6 +101,8 @@ exports.getSignup = (req, res) => {
     pageTitle: "Signup",
     isAuthenticated: req.session.isLoggedIn,
     error: errorMessage,
+    oldInput:{email:null, password:null},
+    validationErrors:[]
   });
 };
 
@@ -107,21 +110,18 @@ exports.postSignup = async (req, res) => {
   try {
     const email = req.body.email;
     const password = req.body.password;
-    const confirmedPassword = req.body.confirmpassword;
     const errors = validationResult(req);
 
     if(!errors.isEmpty()){
+      console.log(errors);
       return res.status(422).render("auth/signup", {
         path: "/signup",
         pageTitle: "Signup",
         isAuthenticated: req.session.isLoggedIn,
         error: errors.array()[0].msg,
+        oldInput:{email:email, password:password},
+        validationErrors:errors.array()
       });
-    }
-    const user = await User.findOne({ email: email });
-    if (user) {
-      req.flash("error", "E-mail exists already.");
-      return res.redirect("/signup")
     }
     const hashedPassword = await bcrypt.hash(password, 12);
 

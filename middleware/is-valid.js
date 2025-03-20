@@ -1,18 +1,21 @@
 const { check, body } = require("express-validator");
+const User = require("../models/user");
+const bcrypt = require("bcryptjs")
 
 exports.signupCheck = [
   body("email", "Something went wrong, please try with another Email.")
     .isEmail()
     .withMessage("Invalid Email")
-    .custom((value, { req }) => {
-      if (value === "test@test.com") {
-        throw new Error("This email address is forbidden");
+    .custom(async (value, { req }) => {
+      const user = await User.findOne({email:value});
+      if(user){
+        throw new Error("E-mail already exists.")
       }
-      return true;
+      return true
     }),
   body(
     "password",
-    "Please enter a password with only numbers and text and at least 5 characters"
+    "Please enter a password with at least 5 characters."
   ).isLength({ min: 5 }),
   body("confirmpassword", "Passwords do not match, please try again.").custom(
     (value, { req }) => {
@@ -28,14 +31,23 @@ exports.loginCheck = [
   body("email", "Something went wrong, please try with another Email.")
     .isEmail()
     .withMessage("Invalid Email")
-    .custom((value, { req }) => {
-      if (value === "test@test.com") {
-        throw new Error("This email address is forbidden");
+    .custom(async (value, { req }) => {
+      const user = await User.findOne({ email: value });
+      if (!user) {
+        throw new Error("Email not found.");
       }
       return true;
     }),
-  body(
-    "password",
-    "Please enter a password with only numbers and text and at least 5 characters"
-  ).isLength({ min: 5 }),
+  body("password").custom(async (value, { req }) => {
+    const user = await User.findOne({ email: req.body.email });
+    if(user){
+      const passCheck = await bcrypt.compare(value, user.password);
+      if (!passCheck) {
+        throw new Error("Invalid Password.");
+      }
+    } else{
+      return true
+    }
+    return true
+  }),
 ];
