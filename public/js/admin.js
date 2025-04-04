@@ -1,9 +1,8 @@
 const deleteProduct = async (btn) => {
   try {
-    console.log("click");
     const prodId = btn.parentNode.querySelector("[name=productId]").value;
-    console.log(prodId);
     const csrf = btn.parentNode.querySelector("[name=_csrf]").value;
+    const productElement = btn.closest("article");
 
     const result = await fetch("/admin/product/" + prodId, {
       method: "DELETE",
@@ -11,7 +10,7 @@ const deleteProduct = async (btn) => {
         "csrf-token": csrf,
       },
     });
-    console.log(result);
+    productElement.parentNode.removeChild(productElement)
   } catch (err) {
     console.log(err);
   }

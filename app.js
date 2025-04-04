@@ -4,14 +4,13 @@ const express = require("express");
 const mongoose = require("mongoose")
 const session = require("express-session")
 const MongoDBStore = require("connect-mongodb-session")(session);
-
-/* eslint-disable-next-line no-undef */
-const MONGODB_URI = process.env.MONGODB_URI;const PORT = process.env.PORT;const SESSION_KEY = process.env.SESSION_KEY;
 const csrf = require("csurf");
 const flash = require("connect-flash")
+/* eslint-disable-next-line no-undef */
+const MONGODB_URI = process.env.MONGODB_URI;const PORT = process.env.PORT;const SESSION_KEY = process.env.SESSION_KEY;
 
-const User = require("./models/user");
 const app = express();
+const User = require("./models/user");
 const shopRoutes = require("./routes/shop");
 const adminRoutes = require("./routes/admin");
 const authRoutes = require("./routes/auth");
@@ -22,7 +21,6 @@ const store = new MongoDBStore({
   uri:MONGODB_URI,
   collection:'session'
 });
-
 
 
 app.set("view engine", "ejs");

@@ -140,7 +140,7 @@ exports.getProducts = async (req, res, next) => {
 
 exports.deleteProduct = async (req, res) => {
   try {
-    const productId = req.body.params;
+    const productId = req.params.productId;
     const product = await Product.findById(productId);
     
     if (!product) {
