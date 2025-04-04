@@ -1,9 +1,12 @@
+require('dotenv').config();
 const path = require("path");
 const express = require("express");
 const mongoose = require("mongoose")
 const session = require("express-session")
 const MongoDBStore = require("connect-mongodb-session")(session);
-const MONGODB_URI = "mongodb+srv://Arnav:superarnav@cluster0.s2mlu.mongodb.net/shop?retryWrites=true&w=majority&appName=Cluster0";
+
+/* eslint-disable-next-line no-undef */
+const MONGODB_URI = process.env.MONGODB_URI;const PORT = process.env.PORT;const SESSION_KEY = process.env.SESSION_KEY;
 const csrf = require("csurf");
 const flash = require("connect-flash")
 
@@ -32,7 +35,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
-    secret: "my secret",
+    secret: SESSION_KEY,
     resave: false,
     saveUninitialized: false,
     store: store,
@@ -64,7 +67,7 @@ mongoose
     MONGODB_URI
   )
   .then(async () => {
-    app.listen(3000);
+    app.listen(PORT);
     console.log("Connected to the database!");
   })
   .catch((err) => {

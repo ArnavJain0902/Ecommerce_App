@@ -1,23 +1,26 @@
 const { check, body } = require("express-validator");
 const User = require("../models/user");
-const bcrypt = require("bcryptjs")
+const bcrypt = require("bcryptjs");
 
 exports.signupCheck = [
   body("email", "Something went wrong, please try with another Email.")
+    .normalizeEmail()
     .isEmail()
     .withMessage("Invalid Email")
+
     .custom(async (value, { req }) => {
-      const user = await User.findOne({email:value});
-      if(user){
-        throw new Error("E-mail already exists.")
+      const user = await User.findOne({ email: value });
+      if (user) {
+        throw new Error("E-mail already exists.");
       }
-      return true
+      return true;
     }),
-  body(
-    "password",
-    "Please enter a password with at least 5 characters."
-  ).isLength({ min: 5 }),
-  body("confirmpassword", "Passwords do not match, please try again.").custom(
+  body("password", "Please enter a password with at least 5 characters.")
+    .trim()
+    .isLength({ min: 5 }),
+  body("confirmpassword", "Passwords do not match, please try again.")
+  .trim()
+  .custom(
     (value, { req }) => {
       if (value !== req.body.password) {
         throw new Error("Passwords do not match, please try again.");
@@ -30,6 +33,8 @@ exports.signupCheck = [
 exports.loginCheck = [
   body("email", "Something went wrong, please try with another Email.")
     .isEmail()
+    .normalizeEmail()
+    .trim()
     .withMessage("Invalid Email")
     .custom(async (value, { req }) => {
       const user = await User.findOne({ email: value });
@@ -38,16 +43,18 @@ exports.loginCheck = [
       }
       return true;
     }),
-  body("password").custom(async (value, { req }) => {
+  body("password")
+  .trim()
+  .custom(async (value, { req }) => {
     const user = await User.findOne({ email: req.body.email });
-    if(user){
+    if (user) {
       const passCheck = await bcrypt.compare(value, user.password);
       if (!passCheck) {
         throw new Error("Invalid Password.");
       }
-    } else{
-      return true
+    } else {
+      return true;
     }
-    return true
+    return true;
   }),
 ];
